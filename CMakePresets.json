@@ -1,0 +1,22 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "msvc2022",
+      "displayName": "VS2022 x64 (RelWithDebInfo)",
+      "generator": "Visual Studio 17 2022",
+      "architecture": "x64",
+      "binaryDir": "${sourceDir}/build/msvc2022",
+      "cacheVariables": {
+        "CMAKE_CONFIGURATION_TYPES": "RelWithDebInfo;Release;Debug"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "msvc2022",
+      "configurePreset": "msvc2022",
+      "configuration": "RelWithDebInfo"
+    }
+  ]
+}
