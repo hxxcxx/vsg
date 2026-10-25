@@ -44,7 +44,7 @@ vsg::ref_ptr<vsg::Node> buildMeshNode(const MeshData& mesh)
 
     // 对齐 Builder 行为：实例颜色属性（若着色器无条件读取 inColor，缺绑即纯黑）
     auto colors = vsg::vec4Array::create(1);
-    (*colors)[0] = {1.f, 1.f, 1.f, 1.f};
+    (*colors)[0].set(1.f, 1.f, 1.f, 1.f);
     configurator->assignArray(arrays, "vsg_Color", VK_VERTEX_INPUT_RATE_INSTANCE, colors);
     configurator->init();
 
