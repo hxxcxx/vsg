@@ -67,3 +67,6 @@ vcpkg_installed/
 Testing/
 .cache/
 vsgExamples
+
+# ZCode session directory
+.zcode/
