@@ -1,0 +1,33 @@
+{
+    "version": 6,
+    "cmakeMinimumRequired": { "major": 3, "minor": 24, "patch": 0 },
+    "configurePresets": [
+        {
+            "name": "msvc",
+            "displayName": "MSVC x64",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            },
+            "generator": "Visual Studio 18 2026",
+            "architecture": "x64",
+            "binaryDir": "${sourceDir}/build/msvc",
+            "environment": {
+                "VSLANG": "1033"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "relwithdebinfo",
+            "configurePreset": "msvc",
+            "configuration": "RelWithDebInfo"
+        },
+        {
+            "name": "debug",
+            "configurePreset": "msvc",
+            "configuration": "Debug"
+        }
+    ]
+}
