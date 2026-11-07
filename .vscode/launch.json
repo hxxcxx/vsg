@@ -1,0 +1,29 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug vsglab (RelWithDebInfo)",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/msvc/bin/RelWithDebInfo/vsglab.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/build/msvc/bin/RelWithDebInfo",
+            "environment": [],
+            "console": "integratedTerminal",
+            "preLaunchTask": "CMake: Build (RelWithDebInfo)"
+        },
+        {
+            "name": "Debug vsglab (Debug)",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/msvc/bin/Debug/vsglab.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/build/msvc/bin/Debug",
+            "environment": [],
+            "console": "integratedTerminal",
+            "preLaunchTask": "CMake: Build (Debug)"
+        }
+    ]
+}

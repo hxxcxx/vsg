@@ -1,0 +1,34 @@
+{
+    "configurations": [
+        {
+            "name": "Win32",
+            "includePath": [
+                "${workspaceFolder}/src",
+                "${env:VSG_INSTALL_DIR}/include",
+                "${env:VULKAN_SDK}/Include",
+                "${env:QTDIR}/include",
+                "${env:QTDIR}/include/QtCore",
+                "${env:QTDIR}/include/QtGui",
+                "${env:QTDIR}/include/QtWidgets",
+                "${env:WIN10_SDK_INCLUDE}/um",
+                "${env:WIN10_SDK_INCLUDE}/shared",
+                "${env:WIN10_SDK_INCLUDE}/ucrt"
+            ],
+            "defines": [
+                "UNICODE",
+                "_UNICODE",
+                "WIN32",
+                "_WINDOWS",
+                "NOMINMAX",
+                "VSGLAB_DATA_DIR=\"${workspaceFolder}/vsgExamples/data\"",
+                "VSGLAB_EXAMPLES_SRC_DIR=\"${workspaceFolder}/vsgExamples/examples\""
+            ],
+            "windowsSdkVersion": "10.0.22621.0",
+            "cStandard": "c17",
+            "cppStandard": "c++23",
+            "intelliSenseMode": "windows-msvc-x64",
+            "compilerPath": "${env:MSVC2026_CL}"
+        }
+    ],
+    "version": 4
+}

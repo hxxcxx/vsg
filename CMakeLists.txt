@@ -21,11 +21,25 @@ if(MSVC)
 endif()
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-# 本机依赖路径（可被 cmake -D 或 preset 覆盖）
-set(VSGLAB_QT_ROOT "F:/dev/qt6/6.8.3/msvc2022_64" CACHE PATH "Qt6 根目录")
-set(vsg_DIR "F:/code2028/VSG/VulkanSceneGraph/install/lib/cmake/vsg" CACHE PATH "VSG CMake 包目录")
-# vsgConfig 依赖 glslang。该 glslang 由 MSVC 14.51 编译，最终链接须使用不低于它的工具链（VS 2026）。
-set(glslang_DIR "F:/APP/vcpkg/installed/x64-windows/share/glslang" CACHE PATH "glslang CMake 包目录")
+# 本机依赖路径：默认取环境变量，也可用 cmake -D 覆盖缓存变量
+#   QTDIR           → VSGLAB_QT_ROOT  Qt6 MSVC 目录
+#   VSG_INSTALL_DIR → vsg_DIR         VSG 安装目录
+#   VCPKG_ROOT      → glslang_DIR     vcpkg 根目录（vsgConfig 依赖 glslang）
+function(vsglab_path_from_env cache_var env_var suffix description)
+    if(DEFINED ${cache_var})
+        return()
+    endif()
+    if(NOT DEFINED ENV{${env_var}})
+        message(FATAL_ERROR "环境变量 ${env_var} 未设置（${description}），或用 -D${cache_var}=... 指定")
+    endif()
+    file(TO_CMAKE_PATH "$ENV{${env_var}}" root)
+    set(${cache_var} "${root}${suffix}" CACHE PATH "${description}（默认取环境变量 ${env_var}）")
+endfunction()
+
+vsglab_path_from_env(VSGLAB_QT_ROOT QTDIR "" "Qt6 根目录")
+vsglab_path_from_env(vsg_DIR VSG_INSTALL_DIR "/lib/cmake/vsg" "VSG CMake 包目录")
+# 该 glslang 由 MSVC 14.51 编译，最终链接须使用不低于它的工具链（VS 2026）。
+vsglab_path_from_env(glslang_DIR VCPKG_ROOT "/installed/x64-windows/share/glslang" "glslang CMake 包目录")
 
 list(PREPEND CMAKE_PREFIX_PATH "${VSGLAB_QT_ROOT}")
 
