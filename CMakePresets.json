@@ -12,7 +12,7 @@
             },
             "generator": "Visual Studio 18 2026",
             "architecture": "x64",
-            "binaryDir": "${sourceDir}/build/msvc",
+            "binaryDir": "${sourceDir}/build",
             "environment": {
                 "VSLANG": "1033"
             }

@@ -1,10 +1,12 @@
 #include "host/vsg_host.h"
 
 #include "framework/window_params.h"
+#include "host/log_bridge.h"
 #include "host/native_surface.h"
 #include "host/platform/native_window_handle.h"
 
 #include <QDir>
+#include <QHideEvent>
 #include <QLabel>
 #include <QShowEvent>
 #include <QVBoxLayout>
@@ -13,11 +15,19 @@
 #include <vsg/io/FileSystem.h>
 #include <vsg/io/Logger.h>
 
+#ifdef vsgXchange_FOUND
+#include <vsgXchange/all.h>
+#endif
+
 namespace vsglab::host {
 
 VsgHost::VsgHost(const framework::WindowParams& windowParams, QWidget* parent)
     : QWidget(parent), window_params_(windowParams) {
     options_ = vsg::Options::create();
+#ifdef vsgXchange_FOUND
+    // 挂上 vsgXchange 的全部读写器：模型/图片/字体等外部格式即可加载
+    options_->readerWriters.push_back(vsgXchange::all::create());
+#endif
     options_->paths.push_back(vsg::Path(VSGLAB_DATA_DIR));
     for (auto& path : vsg::getEnvPaths("VSG_FILE_PATH"))
         options_->paths.push_back(path);
@@ -40,7 +50,7 @@ VsgHost::VsgHost(const framework::WindowParams& windowParams, QWidget* parent)
     placeholder_->setAlignment(Qt::AlignCenter);
     placeholder_->setWordWrap(true);
     layout_->addWidget(placeholder_);
-    showPlaceholder(tr("Select an example on the left"));
+    showPlaceholder(tr("Not started"));
 
     // 间隔 0：事件队列空闲即出帧；FIFO 呈现模式下由 present 节流
     timer_.setInterval(0);
@@ -54,10 +64,8 @@ VsgHost::~VsgHost() {
 void VsgHost::run(framework::Example* example) {
     stop();
     example_ = example;
-    if (!example_) {
-        showPlaceholder(tr("Select an example on the left"));
+    if (!example_)
         return;
-    }
     pending_start_ = true;
     tryStartPending();
 }
@@ -73,7 +81,7 @@ void VsgHost::restart() {
 void VsgHost::stop() {
     const bool wasRunning = running_;
     teardown();
-    showPlaceholder(example_ ? tr("Example stopped") : tr("Select an example on the left"));
+    showPlaceholder(tr("Example stopped"));
     if (wasRunning)
         emit stopped();
 }
@@ -94,6 +102,7 @@ void VsgHost::handleParamChanged(framework::ParamBase& param) {
     if (!running_ || !example_ || !ctx_)
         return;
     try {
+        LogTagScope tag(log_tag_);
         example_->onParamChanged(*ctx_, param);
     } catch (const vsg::Exception& ex) {
         fail(QString::fromStdString(ex.message));
@@ -104,27 +113,48 @@ void VsgHost::handleParamChanged(framework::ParamBase& param) {
 
 void VsgHost::showEvent(QShowEvent* e) {
     QWidget::showEvent(e);
+    if (running_ && !isConsole())
+        timer_.start();
     tryStartPending();
 }
 
+void VsgHost::hideEvent(QHideEvent* e) {
+    QWidget::hideEvent(e);
+    // 标签页切走后不再出帧，避免多个实例在主线程上轮流等待垂直同步
+    timer_.stop();
+}
+
+bool VsgHost::isConsole() const {
+    return example_ && example_->info().kind == framework::ExampleKind::Console;
+}
+
 void VsgHost::tryStartPending() {
-    // 原生窗口需在控件可见、尺寸确定后再交给 VSG
-    if (!pending_start_ || !isVisible())
+    if (!pending_start_)
+        return;
+    // Window 示例的原生窗口需在控件可见、尺寸确定后再交给 VSG
+    if (!isConsole() && !isVisible())
         return;
     pending_start_ = false;
     startNow();
 }
 
 void VsgHost::startNow() {
+    ctx_ = std::make_unique<framework::ExampleContext>();
+    ctx_->options_ = options_;
+
+    if (isConsole())
+        startConsole();
+    else
+        startWindow();
+}
+
+void VsgHost::startWindow() {
     placeholder_->hide();
     surface_ = new NativeSurface(this);
     layout_->addWidget(surface_);
     surface_->show();
     layout_->activate();
     connect(surface_, &NativeSurface::resized, this, &VsgHost::onSurfaceResized);
-
-    ctx_ = std::make_unique<framework::ExampleContext>();
-    ctx_->options_ = options_;
 
     QPointer<NativeSurface> surface = surface_;
     const framework::WindowParams& windowParams = window_params_;
@@ -141,6 +171,7 @@ void VsgHost::startNow() {
     };
 
     try {
+        LogTagScope tag(log_tag_);
         example_->start(*ctx_);
         if (!ctx_->viewer)
             throw vsg::Exception{ "Example did not create a viewer (assign ctx.viewer in start())" };
@@ -159,8 +190,32 @@ void VsgHost::startNow() {
     }
 
     running_ = true;
-    timer_.start();
-    emit started(QString::fromStdString(example_->info().id));
+    if (isVisible())
+        timer_.start();
+    emit started();
+}
+
+void VsgHost::startConsole() {
+    running_ = true;
+    emit started();
+
+    try {
+        LogTagScope tag(log_tag_);
+        example_->start(*ctx_);
+    } catch (const vsg::Exception& ex) {
+        fail(QString::fromStdString(ex.message));
+        return;
+    } catch (const std::exception& ex) {
+        fail(QString::fromUtf8(ex.what()));
+        return;
+    } catch (...) {
+        fail(tr("Unknown exception"));
+        return;
+    }
+
+    teardown();
+    showPlaceholder(tr("Example finished"));
+    emit finished();
 }
 
 void VsgHost::teardown() {
@@ -172,6 +227,7 @@ void VsgHost::teardown() {
         surface_->setTargetWindow(nullptr);
 
     if (ctx_) {
+        LogTagScope tag(log_tag_);
         try {
             if (example_)
                 example_->stop(*ctx_);
@@ -199,6 +255,7 @@ void VsgHost::onFrameTick() {
 
     auto& viewer = ctx_->viewer;
     try {
+        LogTagScope tag(log_tag_);
         if (!viewer->active()) {
             stop();
             return;
@@ -230,6 +287,7 @@ void VsgHost::onSurfaceResized() {
         return;
 
     try {
+        LogTagScope tag(log_tag_);
         // 重建交换链；相机视口与投影由 RenderGraph 的 WindowResizeHandler 自动更新
         for (auto& w : ctx_->viewer->windows())
             w->resize();

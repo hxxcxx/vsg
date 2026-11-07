@@ -47,8 +47,11 @@ ParamPanel::ParamPanel(QWidget* parent) : QWidget(parent) {
 
 void ParamPanel::clear() {
     while (auto* item = layout_->takeAt(0)) {
-        if (auto* w = item->widget())
+        if (auto* w = item->widget()) {
+            // 立即隐藏，延迟删除前不再显示或响应输入
+            w->hide();
             w->deleteLater();
+        }
         delete item;
     }
 }

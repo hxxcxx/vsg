@@ -18,7 +18,7 @@
         {
             "label": "CMake: Ensure Configured",
             "type": "shell",
-            "command": "if (-not (Test-Path -LiteralPath 'build/msvc/CMakeCache.txt')) { cmake --preset msvc }",
+            "command": "if (-not (Test-Path -LiteralPath 'build/CMakeCache.txt')) { cmake --preset msvc }",
             "problemMatcher": []
         },
         {

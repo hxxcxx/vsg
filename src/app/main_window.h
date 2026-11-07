@@ -1,30 +1,32 @@
 /**
  * @file main_window.h
- * @brief Qt 主窗口：左侧示例树、中间 VSG 视口、右侧示例信息与参数、底部输出区
+ * @brief Qt 主窗口：左侧示例清单、中间示例实例标签页、右侧当前实例的信息与参数、底部输出区
+ *
+ * 双击左侧示例即创建一个实例（可重复创建），每个实例占一个可关闭的标签页。
+ *
  * @author hxxcxx
  * @date 2026-11-06
  */
 #pragma once
 
-#include "framework/example.h"
-#include "framework/param_set.h"
-#include "framework/window_params.h"
-
 #include <QMainWindow>
 
-#include <memory>
-#include <vector>
+#include <map>
+#include <string>
 
+class ExampleTab;
 class OutputPanel;
 class ParamPanel;
+class QAction;
 class QCloseEvent;
 class QLabel;
+class QStackedWidget;
+class QTabWidget;
 class QTreeWidget;
 class QTreeWidgetItem;
 
 namespace vsglab::host {
 class LogBridge;
-class VsgHost;
 }  // namespace vsglab::host
 
 class MainWindow : public QMainWindow {
@@ -34,40 +36,45 @@ public:
     ~MainWindow();
 
 private slots:
-    void onCurrentItemChanged(QTreeWidgetItem* item);
-    void onExampleStarted(const QString& id);
-    void onExampleStopped();
-    void onExampleFailed(const QString& message);
-    void onOpenOriginalSource();
+    void onTreeItemActivated(QTreeWidgetItem* item);
+    void onNewInstance();
+    void onCurrentTabChanged(int index);
+    void onTabCloseRequested(int index);
+    void onRestartInstance();
+    void onStopInstance();
+    void onCloseInstance();
 
 private:
-    struct Entry {
-        std::unique_ptr<vsglab::framework::Example> example;
-        vsglab::framework::ExampleInfo info;
-        std::unique_ptr<vsglab::framework::ParamSet> params;  // 首次选中时声明，跨重启/切换保留
-    };
-
     // --- UI 构建 ---
     void buildUi();
     void populateTree();
-    void selectExample(int index);
-    void rebuildParamPanel();
+
+    // --- 实例管理 ---
+    void createInstance(int descriptorIndex);
+    void closeTab(int index);
+    void closeAllTabs();
+    ExampleTab* currentTab() const;
+    void refreshCurrentInstanceUi();
 
     void closeEvent(QCloseEvent* e) override;
 
-    // --- 示例 ---
-    vsglab::framework::WindowParams window_params_;
-    std::vector<Entry> entries_;
-    int current_ = -1;
+    std::map<std::string, int> instance_counters_;  // 示例 id → 已创建实例数，用于命名
 
     // --- 核心组件 ---
     vsglab::host::LogBridge* log_bridge_ = nullptr;
-    vsglab::host::VsgHost* host_ = nullptr;
 
     // --- 界面 ---
     QTreeWidget* tree_ = nullptr;
+    QStackedWidget* center_ = nullptr;
+    QTabWidget* tabs_ = nullptr;
     QLabel* title_label_ = nullptr;
     QLabel* brief_label_ = nullptr;
     ParamPanel* param_panel_ = nullptr;
     OutputPanel* output_ = nullptr;
+
+    // --- Actions ---
+    QAction* action_new_ = nullptr;
+    QAction* action_restart_ = nullptr;
+    QAction* action_stop_ = nullptr;
+    QAction* action_close_ = nullptr;
 };

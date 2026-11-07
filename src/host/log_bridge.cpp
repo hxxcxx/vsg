@@ -10,6 +10,11 @@
 namespace vsglab::host {
 namespace {
 
+std::string& currentTag() {
+    thread_local std::string tag;
+    return tag;
+}
+
 /// 转发到 LogBridge 的 vsg::Logger；同时写一份到控制台（C stdio 不受 redirect_std 影响）
 class QtLogger : public vsg::Inherit<vsg::Logger, QtLogger> {
 public:
@@ -43,10 +48,15 @@ private:
         if (message.empty())
             return;
 
-        std::fprintf(console, "%.*s\n", static_cast<int>(message.size()), message.data());
+        const std::string& tag = currentTag();
+        if (tag.empty())
+            std::fprintf(console, "%.*s\n", static_cast<int>(message.size()), message.data());
+        else
+            std::fprintf(console, "[%s] %.*s\n", tag.c_str(), static_cast<int>(message.size()), message.data());
 
         if (bridge_)
-            emit bridge_->message(level, QString::fromUtf8(message.data(), static_cast<qsizetype>(message.size())));
+            emit bridge_->message(level, QString::fromUtf8(message.data(), static_cast<qsizetype>(message.size())),
+                                  QString::fromStdString(tag));
     }
 
     QPointer<LogBridge> bridge_;
@@ -64,6 +74,13 @@ LogBridge::LogBridge(QObject* parent) : QObject(parent) {
 LogBridge::~LogBridge() {
     // 替换后旧 logger 析构，std::cout / std::cerr 随之恢复
     vsg::Logger::instance() = vsg::StdLogger::create();
+}
+
+LogTagScope::LogTagScope(std::string tag) : previous_(std::exchange(currentTag(), std::move(tag))) {
+}
+
+LogTagScope::~LogTagScope() {
+    currentTag() = std::move(previous_);
 }
 
 }  // namespace vsglab::host

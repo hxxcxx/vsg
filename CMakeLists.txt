@@ -23,23 +23,41 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 # 本机依赖路径：默认取环境变量，也可用 cmake -D 覆盖缓存变量
 #   QTDIR           → VSGLAB_QT_ROOT  Qt6 MSVC 目录
-#   VSG_INSTALL_DIR → vsg_DIR         VSG 安装目录
 #   VCPKG_ROOT      → glslang_DIR     vcpkg 根目录（vsgConfig 依赖 glslang）
+#   VSG_WORKSPACE   → VSG 全家桶根目录（VulkanSceneGraph / osg2vsg / vsgXchange / vsgImGui）
 function(vsglab_path_from_env cache_var env_var suffix description)
-    if(DEFINED ${cache_var})
+    # 已有有效值（含 -D 指定）则保留；未定义或为 *-NOTFOUND（之前查找失败留下的）时按环境变量重新计算
+    if(${cache_var})
         return()
     endif()
     if(NOT DEFINED ENV{${env_var}})
         message(FATAL_ERROR "环境变量 ${env_var} 未设置（${description}），或用 -D${cache_var}=... 指定")
     endif()
     file(TO_CMAKE_PATH "$ENV{${env_var}}" root)
-    set(${cache_var} "${root}${suffix}" CACHE PATH "${description}（默认取环境变量 ${env_var}）")
+    set(${cache_var} "${root}${suffix}" CACHE PATH "${description}（默认取环境变量 ${env_var}）" FORCE)
+endfunction()
+
+function(vsglab_optional_path_from_env cache_var env_var suffix description)
+    # 可选依赖：环境变量缺失时静默跳过（对应 find_package QUIET）
+    if(${cache_var} OR NOT DEFINED ENV{${env_var}})
+        return()
+    endif()
+    file(TO_CMAKE_PATH "$ENV{${env_var}}" root)
+    set(${cache_var} "${root}${suffix}" CACHE PATH "${description}（默认取环境变量 ${env_var}）" FORCE)
 endfunction()
 
 vsglab_path_from_env(VSGLAB_QT_ROOT QTDIR "" "Qt6 根目录")
-vsglab_path_from_env(vsg_DIR VSG_INSTALL_DIR "/lib/cmake/vsg" "VSG CMake 包目录")
-# 该 glslang 由 MSVC 14.51 编译，最终链接须使用不低于它的工具链（VS 2026）。
 vsglab_path_from_env(glslang_DIR VCPKG_ROOT "/installed/x64-windows/share/glslang" "glslang CMake 包目录")
+# 该 glslang 由 MSVC 14.51 编译，最终链接须使用不低于它的工具链（VS 2026）。
+
+vsglab_path_from_env(vsg_DIR VSG_WORKSPACE "/VulkanSceneGraph/install/lib/cmake/vsg" "VSG CMake 包目录")
+
+# 可选依赖（缺失时自动跳过，示例代码内用 #ifdef vsgXchange_FOUND / vsgImGui_FOUND 区分）
+# vsgXchange 的 Config 要求 osg2vsg/draco/Freetype/assimp/Ktx/GDAL/CURL/OpenEXR 全部可找到，
+# 后六个来自 vcpkg 工具链，osg2vsg 在 VSG_WORKSPACE 下
+vsglab_optional_path_from_env(osg2vsg_DIR VSG_WORKSPACE "/osg2vsg/install/lib/cmake/osg2vsg" "osg2vsg CMake 包目录")
+vsglab_optional_path_from_env(vsgXchange_DIR VSG_WORKSPACE "/vsgXchange/install/lib/cmake/vsgXchange" "vsgXchange CMake 包目录")
+vsglab_optional_path_from_env(vsgImGui_DIR VSG_WORKSPACE "/vsgImGui/install/lib/cmake/vsgImGui" "vsgImGui CMake 包目录")
 
 list(PREPEND CMAKE_PREFIX_PATH "${VSGLAB_QT_ROOT}")
 
@@ -50,11 +68,15 @@ set(CMAKE_MAP_IMPORTED_CONFIG_RELWITHDEBINFO RelWithDebInfo Release "")
 find_package(Qt6 6.8 REQUIRED COMPONENTS Core Gui Widgets)
 find_package(Vulkan REQUIRED)
 find_package(vsg REQUIRED)
+find_package(vsgXchange CONFIG QUIET)
+find_package(vsgImGui CONFIG QUIET)
 
 set(CMAKE_AUTOMOC ON)
 
 set(VSGLAB_SOURCES
     src/app/main.cpp
+    src/app/example_tab.cpp
+    src/app/example_tab.h
     src/app/main_window.cpp
     src/app/main_window.h
     src/app/output_panel.cpp
@@ -98,7 +120,6 @@ target_include_directories(vsglab PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 target_compile_definitions(vsglab PRIVATE
     VSGLAB_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/vsgExamples/data"
-    VSGLAB_EXAMPLES_SRC_DIR="${CMAKE_CURRENT_SOURCE_DIR}/vsgExamples/examples"
     $<$<PLATFORM_ID:Windows>:NOMINMAX>
 )
 
@@ -108,6 +129,17 @@ target_link_libraries(vsglab PRIVATE
     Qt6::Widgets
     vsg::vsg
 )
+
+# 与 vsgExamples 相同的模式：定义 vsgXchange_FOUND / vsgImGui_FOUND，
+# 移植的示例可原样保留原版的 #ifdef 代码
+if(vsgXchange_FOUND)
+    target_link_libraries(vsglab PRIVATE vsgXchange::vsgXchange)
+    target_compile_definitions(vsglab PRIVATE vsgXchange_FOUND)
+endif()
+if(vsgImGui_FOUND)
+    target_link_libraries(vsglab PRIVATE vsgImGui::vsgImGui)
+    target_compile_definitions(vsglab PRIVATE vsgImGui_FOUND)
+endif()
 
 # 运行时依赖部署
 # VC 运行库随 VS 安装在本机，不由 windeployqt 部署（--no-compiler-runtime）；分发到其他机器时需配合 vc_redist。

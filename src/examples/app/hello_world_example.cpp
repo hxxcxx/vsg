@@ -33,9 +33,14 @@ public:
     }
 
     void declareParams(ParamSet& params) override {
-        // 原版默认 models/openstreetmap.vsgt 需要 vsgXchange，这里改用原生格式模型
+#ifdef vsgXchange_FOUND
+        // openstreetmap.vsgt 需要在线下载 OSM 瓦片，网络不可达时必然失败，故不列入候选
+        model_ = params.addFile("Model", "models/lz.vsgt", "Models (*.vsgt *.vsgb *.gltf *.glb *.obj)",
+                                { "models/lz.vsgt", "models/teapot.vsgt" }, Apply::Restart);
+#else
         model_ = params.addFile("Model", "models/lz.vsgt", "VSG Models (*.vsgt *.vsgb)",
                                 { "models/lz.vsgt", "models/teapot.vsgt" }, Apply::Restart);
+#endif
         reset_view_ = params.addAction("Reset View");
     }
 

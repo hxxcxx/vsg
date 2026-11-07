@@ -4,7 +4,7 @@
             "name": "Win32",
             "includePath": [
                 "${workspaceFolder}/src",
-                "${env:VSG_INSTALL_DIR}/include",
+                "${env:VSG_WORKSPACE}/VulkanSceneGraph/install/include",
                 "${env:VULKAN_SDK}/Include",
                 "${env:QTDIR}/include",
                 "${env:QTDIR}/include/QtCore",
@@ -20,8 +20,7 @@
                 "WIN32",
                 "_WINDOWS",
                 "NOMINMAX",
-                "VSGLAB_DATA_DIR=\"${workspaceFolder}/vsgExamples/data\"",
-                "VSGLAB_EXAMPLES_SRC_DIR=\"${workspaceFolder}/vsgExamples/examples\""
+                "VSGLAB_DATA_DIR=\"${workspaceFolder}/vsgExamples/data\""
             ],
             "windowsSdkVersion": "10.0.22621.0",
             "cStandard": "c17",
