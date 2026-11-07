@@ -6,9 +6,11 @@
 #include "host/platform/native_window_handle.h"
 
 #include <QDir>
+#include <QGuiApplication>
 #include <QHideEvent>
 #include <QLabel>
 #include <QShowEvent>
+#include <QThreadPool>
 #include <QVBoxLayout>
 
 #include <vsg/core/Exception.h>
@@ -19,7 +21,37 @@
 #include <vsgXchange/all.h>
 #endif
 
+#include <condition_variable>
+#include <mutex>
+
 namespace vsglab::host {
+namespace {
+
+/// Console 示例共用的后台线程池：只有一个线程，示例排队依次执行
+QThreadPool& consolePool() {
+    static QThreadPool* pool = [] {
+        auto* p = new QThreadPool(qApp);
+        p->setMaxThreadCount(1);
+        return p;
+    }();
+    return *pool;
+}
+
+}  // namespace
+
+/// 一次 Console 示例运行的状态，由后台线程与界面线程共享
+struct VsgHost::ConsoleRun {
+    enum class State {
+        Queued,
+        Running,
+        Done,
+        Cancelled,
+    };
+
+    std::mutex mutex;
+    std::condition_variable done;
+    State state = State::Queued;
+};
 
 VsgHost::VsgHost(const framework::WindowParams& windowParams, QWidget* parent)
     : QWidget(parent), window_params_(windowParams) {
@@ -196,32 +228,90 @@ void VsgHost::startWindow() {
 }
 
 void VsgHost::startConsole() {
+    auto run = std::make_shared<ConsoleRun>();
+    console_run_ = run;
     running_ = true;
     emit started();
 
-    try {
-        LogTagScope tag(log_tag_);
-        example_->start(*ctx_);
-    } catch (const vsg::Exception& ex) {
-        fail(QString::fromStdString(ex.message));
+    // 后台线程只在确认开始运行（Queued → Running）后才访问示例与上下文；
+    // 运行开始后宿主的 teardown 会等待它结束，因此这些裸指针在使用期间有效
+    framework::Example* example = example_;
+    framework::ExampleContext* ctx = ctx_.get();
+    consolePool().start([this, run, example, ctx, tag = log_tag_]() {
+        {
+            std::scoped_lock lock(run->mutex);
+            if (run->state == ConsoleRun::State::Cancelled)
+                return;
+            run->state = ConsoleRun::State::Running;
+        }
+
+        bool failed = false;
+        QString error;
+        try {
+            LogTagScope tagScope(tag);
+            example->start(*ctx);
+        } catch (const vsg::Exception& ex) {
+            failed = true;
+            error = QString::fromStdString(ex.message);
+        } catch (const std::exception& ex) {
+            failed = true;
+            error = QString::fromUtf8(ex.what());
+        } catch (...) {
+            failed = true;
+            error = tr("Unknown exception");
+        }
+
+        // 先投递完成通知、再标记 Done：Done 之前宿主不会被销毁，保证投递时 this 有效；
+        // 宿主若在通知处理前销毁，Qt 会丢弃发给它的待处理事件
+        QMetaObject::invokeMethod(
+                this, [this, run, failed, error]() { onConsoleFinished(run, failed, error); }, Qt::QueuedConnection);
+        {
+            std::scoped_lock lock(run->mutex);
+            run->state = ConsoleRun::State::Done;
+        }
+        run->done.notify_all();
+    });
+}
+
+void VsgHost::onConsoleFinished(const std::shared_ptr<ConsoleRun>& run, bool failed, const QString& error) {
+    // 已被停止或重启的旧运行，忽略其完成通知
+    if (run != console_run_)
         return;
-    } catch (const std::exception& ex) {
-        fail(QString::fromUtf8(ex.what()));
-        return;
-    } catch (...) {
-        fail(tr("Unknown exception"));
+
+    if (failed) {
+        fail(error);
         return;
     }
-
     teardown();
     showPlaceholder(tr("Example finished"));
     emit finished();
+}
+
+void VsgHost::waitForConsoleRun() {
+    if (!console_run_)
+        return;
+
+    {
+        std::unique_lock lock(console_run_->mutex);
+        if (console_run_->state == ConsoleRun::State::Queued) {
+            // 尚未开始：标记取消，轮到它时直接返回，不必等待
+            console_run_->state = ConsoleRun::State::Cancelled;
+        } else if (console_run_->state == ConsoleRun::State::Running) {
+            QGuiApplication::setOverrideCursor(Qt::WaitCursor);
+            console_run_->done.wait(lock, [this]() { return console_run_->state == ConsoleRun::State::Done; });
+            QGuiApplication::restoreOverrideCursor();
+        }
+    }
+    console_run_.reset();
 }
 
 void VsgHost::teardown() {
     timer_.stop();
     pending_start_ = false;
     running_ = false;
+
+    // Console 示例：先等后台运行结束（或取消尚未开始的），之后才能释放示例上下文
+    waitForConsoleRun();
 
     if (surface_)
         surface_->setTargetWindow(nullptr);

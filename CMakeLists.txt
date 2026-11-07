@@ -103,6 +103,17 @@ set(VSGLAB_SOURCES
     src/framework/window_params.cpp
     src/framework/window_params.h
 
+    src/examples/core/allocator_example.cpp
+    src/examples/core/alternate_visitor_custom_type.h
+    src/examples/core/arrays_example.cpp
+    src/examples/core/memory_example.cpp
+    src/examples/core/pointer_example.cpp
+    src/examples/core/types_example.cpp
+    src/examples/core/values_example.cpp
+    src/examples/core/visitor_custom_type.h
+    src/examples/core/visitor_custom_type_example.cpp
+    src/examples/core/visitor_example.cpp
+
     src/examples/app/hello_world_example.cpp
 )
 

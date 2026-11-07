@@ -9,6 +9,9 @@
  *   Console 示例：declareParams() 只调用一次 → start()（一次性跑完）→ stop()
  *   重启 = stop() + start()，参数值保留。
  *
+ * 线程：Window 示例的所有回调都在界面线程；Console 示例的 start() 在后台线程执行
+ * （不阻塞界面，各 Console 示例排队依次运行），其余回调在界面线程。
+ *
  * 输出：原版代码中的 std::cout / vsg::info 等直接保留即可，宿主会把它们标上实例名，
  * Console 示例的输出同时显示在其标签页内。
  *

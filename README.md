@@ -30,8 +30,10 @@ cmake --build --preset relwithdebinfo   :: 或 --preset debug
 
 - 左侧清单**双击**示例（或选中后点工具栏 New Instance）创建一个实例标签页，可重复创建
 - 每个实例的参数独立、从默认值开始；窗口参数组为 Restart 类（修改后自动重启示例）
-- Console 类示例（如 core/maths，无窗口）运行一次，结果显示在其标签页内
+- Console 类示例（如 core/maths，无窗口）运行一次，结果显示在其标签页内；它们在后台线程执行、
+  不阻塞界面，多个 Console 示例排队依次运行；运行中关闭或重启标签会等待其结束
 - 底部输出区显示 vsg 日志与 `std::cout`，带实例标签（如 `[vsghelloworld #2]`）
+- 修改 Restart 类参数（含 Console 示例的参数）会自动重新运行该实例
 
 ## 代码结构
 
@@ -52,7 +54,8 @@ src/app/         界面
                  example_tab.h        实例 = 示例对象 + 独立参数 + 宿主
                  param_panel.h        由 ParamSet 自动生成控件
                  output_panel.h       日志输出区
-src/examples/    移植的示例，文件名 = 类名的 snake_case（如 hello_world_example.cpp）
+src/examples/    移植的示例，按原版分类建子目录，文件名 = 类名的 snake_case（如 core/arrays_example.cpp）；
+                 示例自定义的类型放在匿名命名空间或示例专用命名空间中，避免与其他示例同名冲突
 ```
 
 ## 新增一个示例
