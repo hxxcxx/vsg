@@ -1,9 +1,9 @@
-#include "app/output_panel.h"
+#include "host/output_panel.h"
 
 #include <QFontDatabase>
 #include <QScrollBar>
 
-using vsglab::host::LogBridge;
+namespace vsglab::host {
 
 OutputPanel::OutputPanel(QWidget* parent) : QPlainTextEdit(parent) {
     setReadOnly(true);
@@ -31,3 +31,5 @@ void OutputPanel::appendMessage(LogBridge::Level level, const QString& text) {
     if (atBottom)
         verticalScrollBar()->setValue(verticalScrollBar()->maximum());
 }
+
+}  // namespace vsglab::host

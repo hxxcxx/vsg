@@ -9,7 +9,8 @@
  * @date 2026-11-08
  */
 
-#include "framework/example.h"
+#include "framework/console_example.h"
+#include "framework/example_registry.h"
 
 #include <vsg/core/Auxiliary.h>
 #include <vsg/core/ConstVisitor.h>
@@ -38,101 +39,87 @@ using propertyValue = vsg::Value<property>;
 
 // provide a vsg::type_name<> for our custom propertyValue class using EVSG_type_name() macro, note must be done in
 // global scope.
-EVSG_type_name(engine::propertyValue)
+EVSG_type_name(engine::propertyValue);
 
-        namespace vsglab::examples {
-    namespace {
+namespace vsglab::examples {
+namespace {
 
-    using framework::ExampleContext;
-    using framework::ExampleInfo;
-    using framework::ExampleKind;
+class ValuesExample : public framework::ConsoleExample {
+public:
+    void run(framework::ConsoleContext& /*ctx*/) override {
+        vsg::ref_ptr<vsg::Object> object(new vsg::Object());
+        object->setValue("name", "Name field contents");
+        object->setValue("time", 10.0);
+        object->setValue("size", 3.1f);
+        object->setValue("count", 5);
+        object->setValue("pos", 4u);
 
-    class ValuesExample : public framework::Example {
-    public:
-        ExampleInfo info() const override {
-            return { "vsgvalues", "core",
-                     "Attach user values to any vsg::Object with setValue() (stored in Auxiliary::userObjects), "
-                     "visit them by type, and wrap a custom struct as a vsg::Value<T>.",
-                     ExampleKind::Console };
-        }
+        if (object->getAuxiliary()) {
+            struct VisitValues : public vsg::Visitor {
+                using Visitor::apply;
 
-        void start(ExampleContext& /*ctx*/) override {
-            vsg::ref_ptr<vsg::Object> object(new vsg::Object());
-            object->setValue("name", "Name field contents");
-            object->setValue("time", 10.0);
-            object->setValue("size", 3.1f);
-            object->setValue("count", 5);
-            object->setValue("pos", 4u);
-
-            if (object->getAuxiliary()) {
-                struct VisitValues : public vsg::Visitor {
-                    using Visitor::apply;
-
-                    void apply(vsg::Object& object) override {
-                        std::cout << "Object, " << typeid(object).name() << std::endl;
-                    }
-
-                    void apply(vsg::intValue& value) override {
-                        std::cout << "intValue,  value = " << value << std::endl;
-                    }
-
-                    void apply(vsg::uintValue& value) override {
-                        std::cout << "uintValue,  value = " << value << std::endl;
-                    }
-
-                    void apply(vsg::floatValue& value) override {
-                        std::cout << "floatValue, value  = " << value << std::endl;
-                    }
-
-                    void apply(vsg::doubleValue& value) override {
-                        std::cout << "doubleValue, value  = " << value << std::endl;
-                    }
-
-                    void apply(vsg::stringValue& value) override {
-                        std::cout << "stringValue, value  = " << value.value() << std::endl;
-                    }
-                };
-
-                VisitValues visitValues;
-
-                auto& userObjects = object->getAuxiliary()->userObjects;
-
-                std::cout << "Object has Auxiliary so check its ObjectMap for our values. " << object->getAuxiliary()
-                          << std::endl;
-                for (auto& [key, user_object] : userObjects) {
-                    std::cout << "   key[" << key << "] ";
-                    user_object->accept(visitValues);
+                void apply(vsg::Object& object) override {
+                    std::cout << "Object, " << typeid(object).name() << std::endl;
                 }
 
-                std::cout << "\nUse for_each " << std::endl;
-                std::for_each(userObjects.begin(), userObjects.end(),
-                              [&visitValues](vsg::Auxiliary::ObjectMap::value_type& key_value) {
-                                  std::cout << "   key[" << key_value.first << "] ";
-                                  key_value.second->accept(visitValues);
-                              });
+                void apply(vsg::intValue& value) override { std::cout << "intValue,  value = " << value << std::endl; }
+
+                void apply(vsg::uintValue& value) override {
+                    std::cout << "uintValue,  value = " << value << std::endl;
+                }
+
+                void apply(vsg::floatValue& value) override {
+                    std::cout << "floatValue, value  = " << value << std::endl;
+                }
+
+                void apply(vsg::doubleValue& value) override {
+                    std::cout << "doubleValue, value  = " << value << std::endl;
+                }
+
+                void apply(vsg::stringValue& value) override {
+                    std::cout << "stringValue, value  = " << value.value() << std::endl;
+                }
+            };
+
+            VisitValues visitValues;
+
+            auto& userObjects = object->getAuxiliary()->userObjects;
+
+            std::cout << "Object has Auxiliary so check its ObjectMap for our values. " << object->getAuxiliary()
+                      << std::endl;
+            for (auto& [key, user_object] : userObjects) {
+                std::cout << "   key[" << key << "] ";
+                user_object->accept(visitValues);
             }
 
-            // create a propertyValue object wrapper around an engine::property struct.
-            auto my_property = engine::propertyValue::create(engine::property{ 10.0 });
-            std::cout << "\nmy_property = " << my_property << ", className = " << my_property->className() << std::endl;
-            std::cout << "    after constructor my_property->value->speed = " << my_property->value().speed
-                      << std::endl;
-
-            // we can modify the value struct by getting the value from the value object and modifying it:
-            my_property->value().speed += 2.0f;
-            std::cout << "    after increment my_property->value->speed = " << my_property->value().speed << std::endl;
-
-            // or get a reference to underlying engine::property value held by the my_property object
-            auto& prop = my_property->value();
-            prop.speed *= 2.0f;  // modifying a member of the struct
-            std::cout << "    after multiplication my_property->value->speed = " << prop.speed << std::endl;
+            std::cout << "\nUse for_each " << std::endl;
+            std::for_each(userObjects.begin(), userObjects.end(),
+                          [&visitValues](vsg::Auxiliary::ObjectMap::value_type& key_value) {
+                              std::cout << "   key[" << key_value.first << "] ";
+                              key_value.second->accept(visitValues);
+                          });
         }
-    };
 
-    }  // namespace
+        // create a propertyValue object wrapper around an engine::property struct.
+        auto my_property = engine::propertyValue::create(engine::property{ 10.0 });
+        std::cout << "\nmy_property = " << my_property << ", className = " << my_property->className() << std::endl;
+        std::cout << "    after constructor my_property->value->speed = " << my_property->value().speed << std::endl;
 
-    std::unique_ptr<framework::Example> makeValuesExample() {
-        return std::make_unique<ValuesExample>();
+        // we can modify the value struct by getting the value from the value object and modifying it:
+        my_property->value().speed += 2.0f;
+        std::cout << "    after increment my_property->value->speed = " << my_property->value().speed << std::endl;
+
+        // or get a reference to underlying engine::property value held by the my_property object
+        auto& prop = my_property->value();
+        prop.speed *= 2.0f;  // modifying a member of the struct
+        std::cout << "    after multiplication my_property->value->speed = " << prop.speed << std::endl;
     }
+};
+
+}  // namespace
+
+VSGLAB_REGISTER_EXAMPLE(ValuesExample, "vsgvalues", "core",
+                        "Attach user values to any vsg::Object with setValue() (stored in Auxiliary::userObjects), "
+                        "visit them by type, and wrap a custom struct as a vsg::Value<T>.");
 
 }  // namespace vsglab::examples

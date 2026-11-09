@@ -9,7 +9,8 @@
  * @date 2026-11-08
  */
 
-#include "framework/example.h"
+#include "framework/console_example.h"
+#include "framework/example_registry.h"
 
 #include <vsg/core/Auxiliary.h>
 #include <vsg/core/Object.h>
@@ -24,27 +25,13 @@
 namespace vsglab::examples {
 namespace {
 
-using framework::Apply;
-using framework::ExampleContext;
-using framework::ExampleInfo;
-using framework::ExampleKind;
-using framework::IntParam;
-using framework::ParamSet;
-
-class MemoryExample : public framework::Example {
+class MemoryExample : public framework::ConsoleExample {
 public:
-    ExampleInfo info() const override {
-        return { "vsgmemory", "core",
-                 "Create N vsg::Node objects and time copying a container of ref_ptr<vsg::Object>: "
-                 "the cost of intrusive reference counting.",
-                 ExampleKind::Console };
+    void declareParams(framework::ParamSet& params) override {
+        num_objects_ = params.addInt("Objects (-n)", 1000000, 1, 10000000, framework::Apply::Restart);
     }
 
-    void declareParams(ParamSet& params) override {
-        num_objects_ = params.addInt("Objects (-n)", 1000000, 1, 10000000, Apply::Restart);
-    }
-
-    void start(ExampleContext& /*ctx*/) override {
+    void run(framework::ConsoleContext& /*ctx*/) override {
         auto numObjects = static_cast<unsigned int>(num_objects_->value());
 
         using Objects = std::vector<vsg::ref_ptr<vsg::Object>>;
@@ -68,13 +55,13 @@ public:
     }
 
 private:
-    IntParam* num_objects_ = nullptr;
+    framework::IntParam* num_objects_ = nullptr;
 };
 
 }  // namespace
 
-std::unique_ptr<framework::Example> makeMemoryExample() {
-    return std::make_unique<MemoryExample>();
-}
+VSGLAB_REGISTER_EXAMPLE(MemoryExample, "vsgmemory", "core",
+                        "Create N vsg::Node objects and time copying a container of ref_ptr<vsg::Object>: "
+                        "the cost of intrusive reference counting.");
 
 }  // namespace vsglab::examples

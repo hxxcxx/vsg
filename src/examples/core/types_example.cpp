@@ -9,7 +9,8 @@
  * @date 2026-11-08
  */
 
-#include "framework/example.h"
+#include "framework/console_example.h"
+#include "framework/example_registry.h"
 
 #include <vsg/core/Auxiliary.h>
 #include <vsg/core/Object.h>
@@ -63,10 +64,6 @@ using uivec4 = t_vec4<unsigned int>;
 namespace vsglab::examples {
 namespace {
 
-using framework::ExampleContext;
-using framework::ExampleInfo;
-using framework::ExampleKind;
-
 std::unordered_map<std::type_index, VkFormat> VkFormatTypeMap;
 
 template <typename T>
@@ -79,16 +76,9 @@ VkFormat VkFormatForType() {
     return VkFormatTypeMap[std::type_index(typeid(T))];
 }
 
-class TypesExample : public framework::Example {
+class TypesExample : public framework::ConsoleExample {
 public:
-    ExampleInfo info() const override {
-        return { "vsgtypes", "core",
-                 "Fundamental types: typeid names of C++/vsg types, a type to VkFormat lookup table, "
-                 "and vsg maths functions (radians, rotate, translate, length, dot).",
-                 ExampleKind::Console };
-    }
-
-    void start(ExampleContext& /*ctx*/) override {
+    void run(framework::ConsoleContext& /*ctx*/) override {
         std::cout << "typeid(char) = " << typeid(char).name() << std::endl;
         std::cout << "typeid(unsigned char) = " << typeid(unsigned char).name() << std::endl;
         std::cout << "typeid(short) = " << typeid(short).name() << std::endl;
@@ -171,8 +161,8 @@ public:
 
 }  // namespace
 
-std::unique_ptr<framework::Example> makeTypesExample() {
-    return std::make_unique<TypesExample>();
-}
+VSGLAB_REGISTER_EXAMPLE(TypesExample, "vsgtypes", "core",
+                        "Fundamental types: typeid names of C++/vsg types, a type to VkFormat lookup table, "
+                        "and vsg maths functions (radians, rotate, translate, length, dot).");
 
 }  // namespace vsglab::examples

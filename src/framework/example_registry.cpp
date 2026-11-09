@@ -1,53 +1,121 @@
 #include "framework/example_registry.h"
 
-// 各示例在 src/examples/<category>/<类名 snake_case>.cpp 中定义工厂函数
-namespace vsglab::examples {
-
-// core
-std::unique_ptr<framework::Example> makeAllocatorExample();
-std::unique_ptr<framework::Example> makeArraysExample();
-std::unique_ptr<framework::Example> makeMemoryExample();
-std::unique_ptr<framework::Example> makePointerExample();
-std::unique_ptr<framework::Example> makeTypesExample();
-std::unique_ptr<framework::Example> makeValuesExample();
-std::unique_ptr<framework::Example> makeVisitorExample();
-std::unique_ptr<framework::Example> makeVisitorCustomTypeExample();
-
-// app
-std::unique_ptr<framework::Example> makeHelloWorldExample();
-
-}  // namespace vsglab::examples
+#include <algorithm>
+#include <string>
+#include <string_view>
+#include <utility>
 
 namespace vsglab::framework {
 namespace {
 
-using Factory = std::unique_ptr<Example> (*)();
+std::vector<ExampleDescriptor>& registry() {
+    static std::vector<ExampleDescriptor> descriptors;
+    return descriptors;
+}
 
-ExampleDescriptor describe(Factory factory) {
-    // 示例对象很轻（viewer 在 start() 中才创建），临时创建一个读取描述信息
-    return { factory()->info(), factory };
+/// 课程表：vsgExamples 的全部示例。
+/// 分类按 README 的顺序排列（README 未列出的 animation、lighting 放在最后），
+/// 分类内按各分类 CMakeLists.txt 中 add_subdirectory 的顺序排列。
+struct Category {
+    std::string_view name;
+    std::vector<std::string_view> ids;
+};
+
+const std::vector<Category>& syllabus() {
+    static const std::vector<Category> kSyllabus = {
+        { "core",
+          { "vsgallocator", "vsgarrays", "vsgmemory", "vsgpointer", "vsgtypes", "vsgvalues", "vsgvisitor",
+            "vsgvisitorcustomtype" } },
+        { "nodes",
+          { "vsgannotation", "vsggroups", "vsglod", "vsgtransform", "vsgtextureprojection", "vsglayers",
+            "vsgcoordinateframe", "vsgpagedlod", "vsgtiledatabase" } },
+        { "maths", { "vsgmaths" } },
+        { "app",
+          { "vsgheadless",
+            "vsgmultigpu",
+            "vsgmultiviews",
+            "vsgortho",
+            "vsgoverlay",
+            "vsgrendertotexture",
+            "vsgrendertotexturearray",
+            "vsgscreenshot",
+            "vsgoffscreenshot",
+            "vsgsubpass",
+            "vsgturntablecamera",
+            "vsgskybox",
+            "vsgviewer",
+            "vsgdeviceselection",
+            "vsganaglyphicstereo",
+            "vsgwindows",
+            "vsgcameras",
+            "vsgvalidate",
+            "vsgaxes",
+            "vsgcolorspace",
+            "vsgmultiwindowmultiview",
+            "vsgrenderoutline",
+            "vsghelloworld",
+            "vsgdepthpeeling" } },
+        { "vk", { "vsgcompute" } },
+        { "text", { "vsgtext", "vsgtextgroup" } },
+        { "raytracing", { "vsgraytracing" } },
+        { "state",
+          { "vsgdynamictexture", "vsgdynamictexture_cs", "vsgtexturearray", "vsgstateswitch", "vsgcomputevertex",
+            "vsgdynamicvertex", "vsgclip", "vsgextendstate", "vsgsampler", "vsgwireframe", "vsgdynamicstate" } },
+        { "commands",
+          { "vsgdraw", "vsginterleaved", "vsgexecutecommands", "vsgtimestamps", "vsgocclusionquery",
+            "vsgdrawindirect" } },
+        { "io", { "vsgcluster", "vsgio", "vsglog", "vsglog_mt", "vsgpath", "vsgcustombuilders" } },
+        { "ui", { "vsginput", "vsgimgui_example" } },
+        { "platform", { "vsgandroidnative", "vsgwin32" } },
+        { "utils",
+          { "vsgbuilder", "vsggraphicspipelineconfigurator", "vsgshaderset", "vsgintersection", "vsgstoragebuffer",
+            "vsgcustomshaderset", "vsginstrumentation", "vsghighlight", "vsgtracyinstrumentation" } },
+        { "threading", { "vsgdynamicload", "vsgdynamicviews", "vsgdynamicwindows" } },
+        { "volume", { "vsgvolume" } },
+        { "meshshaders", { "vsgmeshshader", "vsgmeshshaderset" } },
+        { "animation", { "vsganimation" } },
+        { "lighting", { "vsglights", "vsgshadow" } },
+    };
+    return kSyllabus;
+}
+
+/// 排序键：(分类位置, 分类内位置)。课程表外的分类排在最后，课程表外的示例排在所在分类的最后
+std::pair<size_t, size_t> syllabusPosition(const ExampleInfo& info) {
+    const auto& categories = syllabus();
+    for (size_t c = 0; c < categories.size(); ++c) {
+        if (categories[c].name != info.category)
+            continue;
+        const auto& ids = categories[c].ids;
+        return { c, static_cast<size_t>(std::find(ids.begin(), ids.end(), info.id) - ids.begin()) };
+    }
+    return { categories.size(), 0 };
 }
 
 }  // namespace
 
-const std::vector<ExampleDescriptor>& exampleDescriptors() {
-    // 分类顺序与 vsgExamples README 一致（core → nodes → maths → app → ...），
-    // 分类内顺序与原版 CMakeLists 一致；界面上的分类按首次出现的顺序排列
-    static const std::vector<ExampleDescriptor> kDescriptors = {
-        // --- core ---
-        describe(&examples::makeAllocatorExample),
-        describe(&examples::makeArraysExample),
-        describe(&examples::makeMemoryExample),
-        describe(&examples::makePointerExample),
-        describe(&examples::makeTypesExample),
-        describe(&examples::makeValuesExample),
-        describe(&examples::makeVisitorExample),
-        describe(&examples::makeVisitorCustomTypeExample),
+bool registerExample(ExampleDescriptor descriptor) {
+    registry().push_back(std::move(descriptor));
+    return true;
+}
 
-        // --- app ---
-        describe(&examples::makeHelloWorldExample),
-    };
-    return kDescriptors;
+const std::vector<ExampleDescriptor>& exampleDescriptors() {
+    // 首次调用发生在 main() 之后，此时所有示例都已登记
+    static const std::vector<ExampleDescriptor> kSorted = [] {
+        auto descriptors = registry();
+        std::stable_sort(descriptors.begin(), descriptors.end(),
+                         [](const ExampleDescriptor& a, const ExampleDescriptor& b) {
+                             const auto pa = syllabusPosition(a.info);
+                             const auto pb = syllabusPosition(b.info);
+                             if (pa != pb)
+                                 return pa < pb;
+                             // 课程表外的分类/示例之间按名称排序
+                             if (a.info.category != b.info.category)
+                                 return a.info.category < b.info.category;
+                             return a.info.id < b.info.id;
+                         });
+        return descriptors;
+    }();
+    return kSorted;
 }
 
 }  // namespace vsglab::framework

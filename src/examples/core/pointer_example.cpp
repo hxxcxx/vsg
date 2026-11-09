@@ -9,7 +9,8 @@
  * @date 2026-11-08
  */
 
-#include "framework/example.h"
+#include "framework/console_example.h"
+#include "framework/example_registry.h"
 
 #include <vsg/core/Auxiliary.h>
 #include <vsg/core/Object.h>
@@ -29,10 +30,6 @@
 
 namespace vsglab::examples {
 namespace {
-
-using framework::ExampleContext;
-using framework::ExampleInfo;
-using framework::ExampleKind;
 
 class SharedPtrAuxiliary : public std::enable_shared_from_this<SharedPtrAuxiliary> {
 public:
@@ -68,16 +65,9 @@ public:
     Children _children;
 };
 
-class PointerExample : public framework::Example {
+class PointerExample : public framework::ConsoleExample {
 public:
-    ExampleInfo info() const override {
-        return { "vsgpointer", "core",
-                 "Compare vsg::ref_ptr (intrusive reference counting) with std::shared_ptr: "
-                 "object and pointer sizes, alignments, and the memory layout of vsg::Object / vsg::vec3.",
-                 ExampleKind::Console };
-    }
-
-    void start(ExampleContext& /*ctx*/) override {
+    void run(framework::ConsoleContext& /*ctx*/) override {
         vsg::ref_ptr<vsg::QuadGroup> ref_node = vsg::QuadGroup::create();
         std::cout << "sizeof(Object)=" << sizeof(vsg::Object) << std::endl;
         std::cout << "sizeof(atomic_uint)=" << sizeof(std::atomic_uint) << std::endl;
@@ -114,8 +104,8 @@ public:
 
 }  // namespace
 
-std::unique_ptr<framework::Example> makePointerExample() {
-    return std::make_unique<PointerExample>();
-}
+VSGLAB_REGISTER_EXAMPLE(PointerExample, "vsgpointer", "core",
+                        "Compare vsg::ref_ptr (intrusive reference counting) with std::shared_ptr: "
+                        "object and pointer sizes, alignments, and the memory layout of vsg::Object / vsg::vec3.");
 
 }  // namespace vsglab::examples

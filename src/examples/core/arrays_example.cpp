@@ -9,7 +9,8 @@
  * @date 2026-11-08
  */
 
-#include "framework/example.h"
+#include "framework/console_example.h"
+#include "framework/example_registry.h"
 
 #include <vsg/core/Array.h>
 #include <vsg/core/ConstVisitor.h>
@@ -22,20 +23,9 @@
 namespace vsglab::examples {
 namespace {
 
-using framework::ExampleContext;
-using framework::ExampleInfo;
-using framework::ExampleKind;
-
-class ArraysExample : public framework::Example {
+class ArraysExample : public framework::ConsoleExample {
 public:
-    ExampleInfo info() const override {
-        return { "vsgarrays", "core",
-                 "vsg::Array containers: create floatArray / vec4Array by size, iterate with std::for_each, "
-                 "and construct arrays from initializer lists.",
-                 ExampleKind::Console };
-    }
-
-    void start(ExampleContext& /*ctx*/) override {
+    void run(framework::ConsoleContext& /*ctx*/) override {
         auto floats = vsg::floatArray::create(10);
 
         std::cout << "floats.size() = " << floats->size() << std::endl;
@@ -72,8 +62,8 @@ public:
 
 }  // namespace
 
-std::unique_ptr<framework::Example> makeArraysExample() {
-    return std::make_unique<ArraysExample>();
-}
+VSGLAB_REGISTER_EXAMPLE(ArraysExample, "vsgarrays", "core",
+                        "vsg::Array containers: create floatArray / vec4Array by size, iterate with std::for_each, "
+                        "and construct arrays from initializer lists.");
 
 }  // namespace vsglab::examples

@@ -15,7 +15,6 @@
 #include <string>
 
 class ExampleTab;
-class OutputPanel;
 class ParamPanel;
 class QAction;
 class QCloseEvent;
@@ -27,6 +26,7 @@ class QTreeWidgetItem;
 
 namespace vsglab::host {
 class LogBridge;
+class OutputPanel;
 }  // namespace vsglab::host
 
 class MainWindow : public QMainWindow {
@@ -70,7 +70,7 @@ private:
     QLabel* title_label_ = nullptr;
     QLabel* brief_label_ = nullptr;
     ParamPanel* param_panel_ = nullptr;
-    OutputPanel* output_ = nullptr;
+    vsglab::host::OutputPanel* output_ = nullptr;
 
     // --- Actions ---
     QAction* action_new_ = nullptr;

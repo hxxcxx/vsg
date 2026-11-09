@@ -10,7 +10,8 @@
  * @date 2026-11-08
  */
 
-#include "framework/example.h"
+#include "framework/console_example.h"
+#include "framework/example_registry.h"
 
 #include <vsg/core/Auxiliary.h>
 #include <vsg/core/ConstVisitor.h>
@@ -28,13 +29,6 @@
 
 namespace vsglab::examples {
 namespace {
-
-using framework::Apply;
-using framework::ExampleContext;
-using framework::ExampleInfo;
-using framework::ExampleKind;
-using framework::IntParam;
-using framework::ParamSet;
 
 vsg::ref_ptr<vsg::Node> createQuadTree(unsigned int numLevels) {
     if (numLevels == 0)
@@ -65,21 +59,13 @@ double time(F function) {
     return std::chrono::duration<double>(clock::now() - start).count();
 }
 
-class VisitorExample : public framework::Example {
+class VisitorExample : public framework::ConsoleExample {
 public:
-    ExampleInfo info() const override {
-        return { "vsgvisitor", "core",
-                 "Build a fixed quad tree, then count node types with a custom ConstVisitor, both by calling "
-                 "accept() explicitly and via the vsg::visit<>() convenience template. "
-                 "The default 11 levels create about 5.6 million nodes and take a few seconds.",
-                 ExampleKind::Console };
+    void declareParams(framework::ParamSet& params) override {
+        num_levels_ = params.addInt("Levels (-l)", 11, 0, 12, framework::Apply::Restart);
     }
 
-    void declareParams(ParamSet& params) override {
-        num_levels_ = params.addInt("Levels (-l)", 11, 0, 12, Apply::Restart);
-    }
-
-    void start(ExampleContext& /*ctx*/) override {
+    void run(framework::ConsoleContext& /*ctx*/) override {
         auto numLevels = static_cast<unsigned int>(num_levels_->value());
 
         vsg::ref_ptr<vsg::Node> scene;
@@ -114,13 +100,14 @@ public:
     }
 
 private:
-    IntParam* num_levels_ = nullptr;
+    framework::IntParam* num_levels_ = nullptr;
 };
 
 }  // namespace
 
-std::unique_ptr<framework::Example> makeVisitorExample() {
-    return std::make_unique<VisitorExample>();
-}
+VSGLAB_REGISTER_EXAMPLE(VisitorExample, "vsgvisitor", "core",
+                        "Build a fixed quad tree, then count node types with a custom ConstVisitor, both by calling "
+                        "accept() explicitly and via the vsg::visit<>() convenience template. "
+                        "The default 11 levels create about 5.6 million nodes and take a few seconds.");
 
 }  // namespace vsglab::examples

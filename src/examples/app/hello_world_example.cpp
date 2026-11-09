@@ -9,30 +9,20 @@
  * @date 2026-11-06
  */
 
-#include "framework/example.h"
+#include "framework/example_registry.h"
+#include "framework/window_example.h"
 
 #include <vsg/all.h>
 
 namespace vsglab::examples {
 namespace {
 
-using framework::ActionParam;
 using framework::Apply;
-using framework::ExampleContext;
-using framework::ExampleInfo;
-using framework::FileParam;
-using framework::ParamBase;
-using framework::ParamSet;
+using framework::WindowContext;
 
-class HelloWorldExample : public framework::Example {
+class HelloWorldExample : public framework::WindowExample {
 public:
-    ExampleInfo info() const override {
-        return { "vsghelloworld", "app",
-                 "Load a model and browse it with a Trackball: the minimal complete VSG application. "
-                 "Click into the viewport, then press Space to return to the home view." };
-    }
-
-    void declareParams(ParamSet& params) override {
+    void declareParams(framework::ParamSet& params) override {
 #ifdef vsgXchange_FOUND
         // openstreetmap.vsgt 需要在线下载 OSM 瓦片，网络不可达时必然失败，故不列入候选
         model_ = params.addFile("Model", "models/lz.vsgt", "Models (*.vsgt *.vsgb *.gltf *.glb *.obj)",
@@ -44,7 +34,7 @@ public:
         reset_view_ = params.addAction("Reset View");
     }
 
-    void start(ExampleContext& ctx) override {
+    void start(WindowContext& ctx) override {
         auto windowTraits = ctx.windowTraits();
         auto options = ctx.options();
 
@@ -104,19 +94,19 @@ public:
         ctx.viewer = viewer;
     }
 
-    void onParamChanged(ExampleContext& /*ctx*/, const ParamBase& param) override {
+    void onParamChanged(WindowContext& /*ctx*/, const framework::ParamBase& param) override {
         if (&param == reset_view_ && trackball_ && home_view_)
             trackball_->setViewpoint(vsg::LookAt::create(*home_view_), 0.5);
     }
 
-    void stop(ExampleContext& /*ctx*/) override {
+    void stop(WindowContext& /*ctx*/) override {
         trackball_ = nullptr;
         home_view_ = nullptr;
     }
 
 private:
-    FileParam* model_ = nullptr;
-    ActionParam* reset_view_ = nullptr;
+    framework::FileParam* model_ = nullptr;
+    framework::ActionParam* reset_view_ = nullptr;
 
     vsg::ref_ptr<vsg::Trackball> trackball_;
     vsg::ref_ptr<vsg::LookAt> home_view_;
@@ -124,8 +114,8 @@ private:
 
 }  // namespace
 
-std::unique_ptr<framework::Example> makeHelloWorldExample() {
-    return std::make_unique<HelloWorldExample>();
-}
+VSGLAB_REGISTER_EXAMPLE(HelloWorldExample, "vsghelloworld", "app",
+                        "Load a model and browse it with a Trackball: the minimal complete VSG application. "
+                        "Click into the viewport, then press Space to return to the home view.");
 
 }  // namespace vsglab::examples

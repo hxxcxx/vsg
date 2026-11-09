@@ -1,11 +1,11 @@
 #include "app/main_window.h"
 
 #include "app/example_tab.h"
-#include "app/output_panel.h"
 #include "app/param_panel.h"
 #include "framework/example_registry.h"
+#include "framework/window_params.h"
 #include "host/log_bridge.h"
-#include "host/vsg_host.h"
+#include "host/output_panel.h"
 
 #include <QAction>
 #include <QCloseEvent>
@@ -24,7 +24,7 @@
 
 using vsglab::framework::exampleDescriptors;
 using vsglab::host::LogBridge;
-using vsglab::host::VsgHost;
+using vsglab::host::OutputPanel;
 
 namespace {
 
@@ -177,12 +177,12 @@ void MainWindow::createInstance(int descriptorIndex) {
     const QString tag = QStringLiteral("%1 #%2").arg(qstr(descriptor.info.id)).arg(number);
 
     auto* tab = new ExampleTab(descriptor, tag, log_bridge_, tabs_);
-    VsgHost* host = tab->host();
-    connect(host, &VsgHost::started, tab, [this, tag]() { statusBar()->showMessage(tr("Running: %1").arg(tag)); });
-    connect(host, &VsgHost::stopped, tab, [this, tag]() { statusBar()->showMessage(tr("Stopped: %1").arg(tag)); });
-    connect(host, &VsgHost::finished, tab, [this, tag]() { statusBar()->showMessage(tr("Finished: %1").arg(tag)); });
+    connect(tab, &ExampleTab::started, this, [this, tag]() { statusBar()->showMessage(tr("Running: %1").arg(tag)); });
+    connect(tab, &ExampleTab::stopped, this, [this, tag]() { statusBar()->showMessage(tr("Stopped: %1").arg(tag)); });
+    connect(tab, &ExampleTab::finished, this, [this, tag]() { statusBar()->showMessage(tr("Finished: %1").arg(tag)); });
+    // 与日志一样走队列，保证错误信息排在该次运行的输出之后
     connect(
-            host, &VsgHost::errorOccurred, tab,
+            tab, &ExampleTab::failed, this,
             [this, tag](const QString& message) {
                 output_->appendMessage(LogBridge::Level::Error,
                                        QStringLiteral("[%1] %2").arg(tag, tr("Example failed: %1").arg(message)));
@@ -228,8 +228,8 @@ void MainWindow::refreshCurrentInstanceUi() {
         title_label_->setText(tab->tag());
         brief_label_->setText(qstr(tab->info().brief));
         param_panel_->addGroup(tab->params(), true);
-        if (!tab->isConsole())
-            param_panel_->addGroup(tab->windowParams().params(), false);
+        if (auto* windowParams = tab->windowParams())
+            param_panel_->addGroup(windowParams->params(), false);
     } else {
         title_label_->setText(tr("No instance"));
         brief_label_->setText(tr("Double-click an example on the left to create an instance."));

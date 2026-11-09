@@ -12,30 +12,21 @@
  * @date 2026-11-08
  */
 
-#include "examples/core/alternate_visitor_custom_type.h"
-#include "examples/core/visitor_custom_type.h"
-#include "framework/example.h"
+#include "examples/core/visitor_custom_type/alternate_visitor_custom_type.h"
+#include "examples/core/visitor_custom_type/visitor_custom_type.h"
+#include "framework/console_example.h"
+#include "framework/example_registry.h"
 
 #include <iostream>
 
 namespace vsglab::examples {
 namespace {
 
-using framework::ExampleContext;
-using framework::ExampleInfo;
-using framework::ExampleKind;
 using namespace visitor_custom_type;
 
-class VisitorCustomTypeExample : public framework::Example {
+class VisitorCustomTypeExample : public framework::ConsoleExample {
 public:
-    ExampleInfo info() const override {
-        return { "vsgvisitorcustomtype", "core",
-                 "Two ways to let visitors handle custom node types: recognise them in a visitor base class's "
-                 "apply(Group&), or override accept() in the custom node to dispatch itself.",
-                 ExampleKind::Console };
-    }
-
-    void start(ExampleContext& /*ctx*/) override {
+    void run(framework::ConsoleContext& /*ctx*/) override {
         // Approach 1
         {
             std::cout << "First approach to implementing custom types and custom visitors that support these custom "
@@ -76,8 +67,8 @@ public:
 
 }  // namespace
 
-std::unique_ptr<framework::Example> makeVisitorCustomTypeExample() {
-    return std::make_unique<VisitorCustomTypeExample>();
-}
+VSGLAB_REGISTER_EXAMPLE(VisitorCustomTypeExample, "vsgvisitorcustomtype", "core",
+                        "Two ways to let visitors handle custom node types: recognise them in a visitor base class's "
+                        "apply(Group&), or override accept() in the custom node to dispatch itself.");
 
 }  // namespace vsglab::examples

@@ -79,41 +79,52 @@ set(VSGLAB_SOURCES
     src/app/example_tab.h
     src/app/main_window.cpp
     src/app/main_window.h
-    src/app/output_panel.cpp
-    src/app/output_panel.h
     src/app/param_panel.cpp
     src/app/param_panel.h
 
+    src/host/console_runner.cpp
+    src/host/console_runner.h
+    src/host/example_runner.cpp
+    src/host/example_runner.h
     src/host/key_map.cpp
     src/host/key_map.h
     src/host/log_bridge.cpp
     src/host/log_bridge.h
     src/host/native_surface.cpp
     src/host/native_surface.h
-    src/host/vsg_host.cpp
-    src/host/vsg_host.h
+    src/host/output_panel.cpp
+    src/host/output_panel.h
+    src/host/window_runner.cpp
+    src/host/window_runner.h
     src/host/platform/native_window_handle.h
 
+    src/framework/console_example.h
     src/framework/example.h
-    src/framework/example_context.h
     src/framework/example_registry.cpp
     src/framework/example_registry.h
     src/framework/param_set.cpp
     src/framework/param_set.h
+    src/framework/window_example.h
     src/framework/window_params.cpp
     src/framework/window_params.h
+)
 
+# 移植的示例：每个示例一个 .cpp，文件内用 VSGLAB_REGISTER_EXAMPLE 自行登记。
+# 必须直接编进可执行文件（不能做成静态库），否则登记代码会被链接器丢弃。
+list(APPEND VSGLAB_SOURCES
+    # core
     src/examples/core/allocator_example.cpp
-    src/examples/core/alternate_visitor_custom_type.h
     src/examples/core/arrays_example.cpp
     src/examples/core/memory_example.cpp
     src/examples/core/pointer_example.cpp
     src/examples/core/types_example.cpp
     src/examples/core/values_example.cpp
-    src/examples/core/visitor_custom_type.h
-    src/examples/core/visitor_custom_type_example.cpp
     src/examples/core/visitor_example.cpp
+    src/examples/core/visitor_custom_type/alternate_visitor_custom_type.h
+    src/examples/core/visitor_custom_type/visitor_custom_type.h
+    src/examples/core/visitor_custom_type/visitor_custom_type_example.cpp
 
+    # app
     src/examples/app/hello_world_example.cpp
 )
 

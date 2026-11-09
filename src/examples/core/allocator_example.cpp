@@ -18,7 +18,8 @@
  * @date 2026-11-08
  */
 
-#include "framework/example.h"
+#include "framework/example_registry.h"
+#include "framework/window_example.h"
 
 #include <vsg/all.h>
 
@@ -32,12 +33,9 @@ namespace {
 using framework::Apply;
 using framework::BoolParam;
 using framework::DoubleParam;
-using framework::ExampleContext;
-using framework::ExampleInfo;
-using framework::ExampleKind;
 using framework::FileParam;
 using framework::IntParam;
-using framework::ParamSet;
+using framework::WindowContext;
 
 struct SceneStatistics : public vsg::Inherit<vsg::ConstVisitor, SceneStatistics> {
     std::map<const char*, size_t> objectCounts;
@@ -53,17 +51,9 @@ struct SceneStatistics : public vsg::Inherit<vsg::ConstVisitor, SceneStatistics>
     }
 };
 
-class AllocatorExample : public framework::Example {
+class AllocatorExample : public framework::WindowExample {
 public:
-    ExampleInfo info() const override {
-        return { "vsgallocator", "core",
-                 "Load and render a model, then report vsg::Allocator memory usage before and after the viewer is "
-                 "released. The original's allocator switching options are not available here because they replace "
-                 "the process-wide allocator; reports cover the whole process, including other instances.",
-                 ExampleKind::Window };
-    }
-
-    void declareParams(ParamSet& params) override {
+    void declareParams(framework::ParamSet& params) override {
         model_ = params.addFile("Model", "models/lz.vsgt", "Models (*.vsgt *.vsgb *.gltf *.glb *.obj)",
                                 { "models/lz.vsgt", "models/teapot.vsgt" }, Apply::Restart);
         num_stats_ = params.addInt("Stats traversals (--num-stats)", 0, 0, 1000, Apply::Restart);
@@ -77,7 +67,7 @@ public:
         validate_ = params.addBool("Validate allocator every frame (--validate)", false, Apply::Live);
     }
 
-    void start(ExampleContext& ctx) override {
+    void start(WindowContext& ctx) override {
         intrusive_allocator_ = dynamic_cast<vsg::IntrusiveAllocator*>(vsg::Allocator::instance().get());
 
         auto windowTraits = ctx.windowTraits();
@@ -205,8 +195,8 @@ public:
         ctx.viewer = viewer;
     }
 
-    void frame(ExampleContext& ctx) override {
-        Example::frame(ctx);
+    void frame(WindowContext& ctx) override {
+        WindowExample::frame(ctx);
 
         if (validate_->value() && intrusive_allocator_) {
             if (!intrusive_allocator_->validate()) {
@@ -216,7 +206,7 @@ public:
         }
     }
 
-    void stop(ExampleContext& ctx) override {
+    void stop(WindowContext& ctx) override {
         // start() 失败时没有 viewer，也就没有统计可报告
         if (!ctx.viewer)
             return;
@@ -283,8 +273,10 @@ private:
 
 }  // namespace
 
-std::unique_ptr<framework::Example> makeAllocatorExample() {
-    return std::make_unique<AllocatorExample>();
-}
+VSGLAB_REGISTER_EXAMPLE(AllocatorExample, "vsgallocator", "core",
+                        "Load and render a model, then report vsg::Allocator memory usage before and after the viewer "
+                        "is released. The original's allocator switching options are not available here because they "
+                        "replace the process-wide allocator; reports cover the whole process, including other "
+                        "instances.");
 
 }  // namespace vsglab::examples
