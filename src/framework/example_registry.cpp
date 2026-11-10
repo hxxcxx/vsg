@@ -14,8 +14,8 @@ std::vector<ExampleDescriptor>& registry() {
 }
 
 /// 课程表：vsgExamples 的全部示例。
-/// 分类按 README 的顺序排列（README 未列出的 animation、lighting 放在最后），
-/// 分类内按各分类 CMakeLists.txt 中 add_subdirectory 的顺序排列。
+/// 分类按 README 的顺序排列（README 未列出的 animation、lighting 放在最后）；
+/// 分类内的顺序按学习路径排（core 即为此前定的学习顺序），与原版 CMakeLists 的字母序无关。
 struct Category {
     std::string_view name;
     std::vector<std::string_view> ids;
@@ -24,8 +24,14 @@ struct Category {
 const std::vector<Category>& syllabus() {
     static const std::vector<Category> kSyllabus = {
         { "core",
-          { "vsgallocator", "vsgarrays", "vsgmemory", "vsgpointer", "vsgtypes", "vsgvalues", "vsgvisitor",
-            "vsgvisitorcustomtype" } },
+          { "vsgtypes",
+            "vsgpointer",
+            "vsgvalues",
+            "vsgarrays",
+            "vsgvisitor",
+            "vsgvisitorcustomtype",
+            "vsgmemory",
+            "vsgallocator" } },
         { "nodes",
           { "vsgannotation", "vsggroups", "vsglod", "vsgtransform", "vsgtextureprojection", "vsglayers",
             "vsgcoordinateframe", "vsgpagedlod", "vsgtiledatabase" } },

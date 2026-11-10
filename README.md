@@ -28,7 +28,9 @@ cmake --build --preset relwithdebinfo   :: 或 --preset debug
 
 ## 使用
 
-- 左侧清单按 vsgExamples 的顺序排列；**双击**示例（或选中后点工具栏 New Instance）创建一个实例标签页，可重复创建
+- 左侧清单按课程表排列：分类顺序同 vsgExamples README，分类内为学习顺序
+  （core：types → pointer → values → arrays → visitor → visitorcustomtype → memory → allocator）；
+  **双击**示例（或选中后点工具栏 New Instance）创建一个实例标签页，可重复创建
 - 每个实例的参数独立、从默认值开始；窗口参数组为 Restart 类（修改后自动重启示例）
 - 控制台示例（如 core/maths，无窗口）运行一次，结果显示在其标签页内；它们在后台线程执行、
   不阻塞界面，多个控制台示例排队依次运行；运行中关闭或重启标签会等待其结束
