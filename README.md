@@ -62,7 +62,8 @@ src/app/         界面
                  param_panel.h        由 ParamSet 自动生成控件
 src/examples/    移植的示例，按原版分类建子目录，文件名 = 类名的 snake_case（如 core/arrays_example.cpp）；
                  需要额外头文件的示例整体放进同名子目录（如 core/visitor_custom_type/）；
-                 示例自定义的类型放在匿名命名空间或示例专用命名空间中，避免与其他示例同名冲突
+                 示例自定义的类型放在匿名命名空间或示例专用命名空间中，避免与其他示例同名冲突；
+                 id 以 lab_ 开头的是自编实验（非 vsgExamples 移植），排在对应分类的末尾
 ```
 
 ## 新增一个示例

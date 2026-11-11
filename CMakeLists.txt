@@ -116,6 +116,7 @@ list(APPEND VSGLAB_SOURCES
     src/examples/core/allocator_example.cpp
     src/examples/core/arrays_example.cpp
     src/examples/core/memory_example.cpp
+    src/examples/core/observer_ptr_experiment.cpp
     src/examples/core/pointer_example.cpp
     src/examples/core/types_example.cpp
     src/examples/core/values_example.cpp
