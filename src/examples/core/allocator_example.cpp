@@ -11,6 +11,9 @@
  *   无法在多实例常驻的试验场中按实例切换。
  * - 去掉了结尾的 vsg::ObjectFactory::instance() = {}：它会清空全局对象工厂，之后整个程序都无法再读取文件。
  * - 去掉了 -t / --st（全屏/小窗口测试）、-f（帧数）、--no-viewer、--cpu（会设置界面线程的 CPU 亲和性）。
+ * - 去掉了 -p（相机动画）、--load-levels / --maxPagedLOD（PagedLOD 预加载，仅瓦片数据库有意义，
+ *   本地离线数据用不到）、--so（sharedObjects）、--rgb、--hmh（地平线山高）：
+ *   它们属于查看器范畴，将在移植 app/vsgviewer、nodes/vsgpagedlod 时作为主角出现。
  * - 原版在退出渲染循环后打印报告，这里改为在示例停止（stop()）时打印。
  * - 分配器是进程级的，报告中的数字包含其他实例及程序本身的 vsg 对象。
  *
@@ -32,7 +35,6 @@ namespace {
 
 using framework::Apply;
 using framework::BoolParam;
-using framework::DoubleParam;
 using framework::FileParam;
 using framework::IntParam;
 using framework::WindowContext;
@@ -57,13 +59,6 @@ public:
         model_ = params.addFile("Model", "models/lz.vsgt", "Models (*.vsgt *.vsgb *.gltf *.glb *.obj)",
                                 { "models/lz.vsgt", "models/teapot.vsgt" }, Apply::Restart);
         num_stats_ = params.addInt("Stats traversals (--num-stats)", 0, 0, 1000, Apply::Restart);
-        shared_objects_ = params.addBool("Shared objects (--so)", false, Apply::Restart);
-        keep_rgb_ = params.addBool("Keep RGB images (--rgb)", false, Apply::Restart);
-        load_levels_ = params.addInt("Preload PagedLOD levels (--load-levels)", 0, 0, 30, Apply::Restart);
-        max_paged_lod_ = params.addInt("Max high-res PagedLOD (--maxPagedLOD)", 0, 0, 100000, Apply::Restart);
-        horizon_mountain_height_ =
-                params.addDouble("Horizon mountain height (--hmh)", 0.0, 0.0, 10000.0, 10.0, Apply::Restart);
-        camera_path_ = params.addFile("Camera animation (-p)", "", "Animations (*.vsgt *.vsgb)", {}, Apply::Restart);
         validate_ = params.addBool("Validate allocator every frame (--validate)", false, Apply::Live);
     }
 
@@ -71,21 +66,7 @@ public:
         intrusive_allocator_ = dynamic_cast<vsg::IntrusiveAllocator*>(vsg::Allocator::instance().get());
 
         auto windowTraits = ctx.windowTraits();
-
-        // 复制宿主的读取选项，本实例的设置（如 sharedObjects）不影响之后的运行
-        auto options = vsg::Options::create(*ctx.options());
-
-        if (shared_objects_->value()) {
-            options->sharedObjects = vsg::SharedObjects::create();
-            std::cout << "Assigned vsg::SharedObjects " << options->sharedObjects << std::endl;
-        }
-        if (keep_rgb_->value())
-            options->mapRGBtoRGBAHint = false;
-
-        const vsg::Path pathFilename = camera_path_->value();
-        const int loadLevels = load_levels_->value();
-        const double horizonMountainHeight = horizon_mountain_height_->value();
-        const int maxPagedLOD = max_paged_lod_->value();
+        auto options = ctx.options();
         const size_t stats = static_cast<size_t>(num_stats_->value());
 
         // record time point just before loading the scene graph
@@ -144,8 +125,8 @@ public:
         vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
         auto ellipsoidModel = vsg_scene->getRefObject<vsg::EllipsoidModel>("EllipsoidModel");
         if (ellipsoidModel) {
-            perspective = vsg::EllipsoidPerspective::create(lookAt, ellipsoidModel, 30.0, aspectRatio, nearFarRatio,
-                                                            horizonMountainHeight);
+            perspective =
+                    vsg::EllipsoidPerspective::create(lookAt, ellipsoidModel, 30.0, aspectRatio, nearFarRatio, 0.0);
         } else {
             perspective = vsg::Perspective::create(30.0, aspectRatio, nearFarRatio * radius, radius * 4.5);
         }
@@ -153,43 +134,12 @@ public:
         auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
 
         // 原版的 CloseHandler 不需要：窗口生命周期由宿主管理
-
-        if (pathFilename) {
-            auto cameraAnimation = vsg::CameraAnimationHandler::create(camera, pathFilename, options);
-            viewer->addEventHandler(cameraAnimation);
-            if (cameraAnimation->animation)
-                cameraAnimation->play();
-        }
-
         viewer->addEventHandler(vsg::Trackball::create(camera, ellipsoidModel));
-
-        // if required preload specific number of PagedLOD levels.
-        if (loadLevels > 0) {
-            vsg::LoadPagedLOD loadPagedLOD(camera, loadLevels);
-
-            auto startTime = std::chrono::steady_clock::now();
-
-            vsg_scene->accept(loadPagedLOD);
-
-            auto time = std::chrono::duration<float, std::chrono::milliseconds::period>(
-                                std::chrono::steady_clock::now() - startTime)
-                                .count();
-            std::cout << "No. of tiles loaded " << loadPagedLOD.numTiles << " in " << time << "ms." << std::endl;
-        }
 
         auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
         viewer->assignRecordAndSubmitTaskAndPresentation({ commandGraph });
 
         viewer->compile();
-
-        if (maxPagedLOD > 0) {
-            // set targetMaxNumPagedLODWithHighResSubgraphs after Viewer::compile() as it will assign any DatabasePager
-            // if required.
-            for (auto& task : viewer->recordAndSubmitTasks) {
-                if (task->databasePager)
-                    task->databasePager->targetMaxNumPagedLODWithHighResSubgraphs = maxPagedLOD;
-            }
-        }
 
         start_of_frame_loop_ = vsg::clock::now();
         ctx.viewer = viewer;
@@ -258,12 +208,6 @@ public:
 private:
     FileParam* model_ = nullptr;
     IntParam* num_stats_ = nullptr;
-    BoolParam* shared_objects_ = nullptr;
-    BoolParam* keep_rgb_ = nullptr;
-    IntParam* load_levels_ = nullptr;
-    IntParam* max_paged_lod_ = nullptr;
-    DoubleParam* horizon_mountain_height_ = nullptr;
-    FileParam* camera_path_ = nullptr;
     BoolParam* validate_ = nullptr;
 
     vsg::IntrusiveAllocator* intrusive_allocator_ = nullptr;
