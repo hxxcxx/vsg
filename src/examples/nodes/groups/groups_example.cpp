@@ -12,6 +12,10 @@
  *   StdAllocator 类随之不再需要。
  * - 去掉了 -o（把树写成 .vsgt 后退出）：属于序列化支线，留到 io 分类。
  * - 输出文件路径改由宿主选项提供（-i 加载外部模型作为被测场景）。
+ * - numBytes 记账补上了 SharedPtrGroup 的孩子堆块（4×sizeof(shared_ptr)）：
+ *   原版只记 sizeof(SharedPtrGroup)，漏掉 vector 孩子数组，使该类型在
+ *   average node size 中被低估约 64 字节/节点（真实排序应为 QuadGroup < Group
+ *   < SharedPtrQuadGroup < SharedPtrGroup）。
  *
  * @author hxxcxx
  * @date 2026-11-12
@@ -162,7 +166,9 @@ std::shared_ptr<groups::SharedPtrNode> createSharedPtrQuadTree(uint64_t numLevel
     --numLevels;
 
     numNodes += 1;
-    numBytes += sizeof(groups::SharedPtrGroup);
+    // 与 vsg::Group 版的记账保持一致：vector 的孩子数组是另一块堆内存，须补记
+    // （原版漏了这笔，导致 SharedPtrGroup 在 average node size 里被严重低估）
+    numBytes += sizeof(groups::SharedPtrGroup) + 4 * sizeof(std::shared_ptr<groups::SharedPtrNode>);
 
     t->setChild(0, createSharedPtrQuadTree(numLevels, numNodes, numBytes));
     t->setChild(1, createSharedPtrQuadTree(numLevels, numNodes, numBytes));
