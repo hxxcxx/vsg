@@ -125,6 +125,12 @@ list(APPEND VSGLAB_SOURCES
     src/examples/core/visitor_custom_type/visitor_custom_type.h
     src/examples/core/visitor_custom_type/visitor_custom_type_example.cpp
 
+    # nodes
+    src/examples/nodes/groups/groups_example.cpp
+    src/examples/nodes/groups/shared_ptr_node.cpp
+    src/examples/nodes/groups/shared_ptr_node.h
+    src/examples/nodes/transform_example.cpp
+
     # app
     src/examples/app/hello_world_example.cpp
 )
