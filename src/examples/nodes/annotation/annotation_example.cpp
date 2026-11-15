@@ -14,8 +14,9 @@
  * - 去掉了 -t / --st / -f / --fps（基准；平均帧率改在 stop() 打印）、
  *   -p（相机动画）、--load-levels / --maxPagedLOD / --hmh（PagedLOD 支线）、
  *   --rgb、--log-level。
- * - --no-annotate 改为界面参数 "Enable debug utils"（默认开）；
- *   --sdi 着色器调试信息改为参数 "Shader debug info"。
+ * - --no-annotate 改为界面参数 "Debug labels"（默认开）：关掉时清空全部 annotation，
+ *   走守卫的空字符串分支真正不发标签——仅靠不请求 VK_EXT_debug_utils 是关不干净的
+ *   （函数指针经加载器/RenderDoc 仍可解析，守卫只判指针非空）。
  *
  * @author hxxcxx
  * @date 2026-11-15
@@ -57,11 +58,14 @@ public:
     void accept(vsg::RecordTraversal& visitor) const override { experimental::Annotation<vsg::Group>::accept(visitor); }
 };
 
-// Lay out the loaded files on the X axis
+// Lay out the loaded files on the X axis.
+// annotate=false 时全部 annotation 留空——守卫的 !annotation.empty() 分支会跳过标签发射，
+// 真正关闭（仅靠不请求扩展是关不掉的：函数指针在 RenderDoc 等环境下仍可解析）。
 vsg::ref_ptr<NamedGroup> createAnnotatedScene(const std::vector<std::string>& names,
-                                              const std::vector<vsg::ref_ptr<vsg::Node>>& nodes) {
+                                              const std::vector<vsg::ref_ptr<vsg::Node>>& nodes, bool annotate) {
     auto scene = NamedGroup::create();
-    scene->annotation = "Scene";
+    if (annotate)
+        scene->annotation = "Scene";
     double xExtent = 0.0;
     auto nameItr = names.begin();
     auto nodeItr = nodes.begin();
@@ -71,7 +75,8 @@ vsg::ref_ptr<NamedGroup> createAnnotatedScene(const std::vector<std::string>& na
         double width = (computeBounds.bounds.max.x - computeBounds.bounds.min.x) * 1.1;
         vsg::dmat4 mat = vsg::translate(xExtent + width / 2, 0.0, 0.0);
         auto matNode = NamedTransform::create(mat);
-        matNode->annotation = *nameItr;
+        if (annotate)
+            matNode->annotation = *nameItr;
         matNode->addChild(*nodeItr);
         scene->addChild(matNode);
         xExtent += width;
@@ -103,7 +108,7 @@ public:
                                   { "models/lz.vsgt", "models/teapot.vsgt" }, Apply::Restart);
         model_2_ = params.addFile("Model 2", "models/teapot.vsgt", "Models (*.vsgt *.vsgb *.gltf *.glb *.obj)",
                                   { "models/teapot.vsgt", "models/lz.vsgt" }, Apply::Restart);
-        debug_utils_ = params.addBool("Enable debug utils", true, Apply::Restart);
+        debug_utils_ = params.addBool("Debug labels", true, Apply::Restart);
         shader_debug_info_ = params.addBool("Shader debug info (--sdi)", false, Apply::Restart);
         near_far_ratio_ = params.addDouble("Near/far ratio (--nfr)", 0.001, 1e-6, 0.1, 0.001, Apply::Restart);
     }
@@ -144,7 +149,7 @@ public:
         if (nodes.empty())
             throw vsg::Exception{ "Please specify a 3d model or image file." };
 
-        auto vsg_scene = createAnnotatedScene(fileNames, nodes);
+        auto vsg_scene = createAnnotatedScene(fileNames, nodes, debug_utils_->value());
 
         // create the viewer and assign window(s) to it
         auto viewer = vsg::Viewer::create();
