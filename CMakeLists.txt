@@ -134,6 +134,9 @@ list(APPEND VSGLAB_SOURCES
     src/examples/nodes/groups/shared_ptr_node.h
     src/examples/nodes/layers_example.cpp
     src/examples/nodes/lod_example.cpp
+    src/examples/nodes/paged_lod_example.cpp
+    src/examples/nodes/pagedlod/tile_reader.cpp
+    src/examples/nodes/pagedlod/tile_reader.h
     src/examples/nodes/textureprojection/custom_phong.cpp
     src/examples/nodes/textureprojection/custom_phong.h
     src/examples/nodes/textureprojection/texture_projection_example.cpp
