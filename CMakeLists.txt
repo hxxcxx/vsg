@@ -137,6 +137,7 @@ list(APPEND VSGLAB_SOURCES
     src/examples/nodes/textureprojection/custom_phong.cpp
     src/examples/nodes/textureprojection/custom_phong.h
     src/examples/nodes/textureprojection/texture_projection_example.cpp
+    src/examples/nodes/tile_database_example.cpp
     src/examples/nodes/transform_example.cpp
 
     # app
