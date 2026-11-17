@@ -152,6 +152,8 @@ list(APPEND VSGLAB_SOURCES
     src/examples/app/hello_world_example.cpp
     src/examples/app/ortho_example.cpp
     src/examples/app/overlay_example.cpp
+    src/examples/app/skybox/skybox_shaders.h
+    src/examples/app/skybox_example.cpp
     src/examples/app/turntable/turntable.cpp
     src/examples/app/turntable/turntable.h
     src/examples/app/turntable_camera_example.cpp
