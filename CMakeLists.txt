@@ -151,6 +151,7 @@ list(APPEND VSGLAB_SOURCES
     src/examples/app/cameras_example.cpp
     src/examples/app/headless_example.cpp
     src/examples/app/hello_world_example.cpp
+    src/examples/app/offscreen_screenshot_example.cpp
     src/examples/app/ortho_example.cpp
     src/examples/app/overlay_example.cpp
     src/examples/app/screenshot_example.cpp
