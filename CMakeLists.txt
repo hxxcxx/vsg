@@ -143,6 +143,9 @@ list(APPEND VSGLAB_SOURCES
     src/examples/nodes/tile_database_example.cpp
     src/examples/nodes/transform_example.cpp
 
+    # maths
+    src/examples/maths/maths_example.cpp
+
     # app
     src/examples/app/hello_world_example.cpp
 )
