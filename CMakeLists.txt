@@ -148,6 +148,8 @@ list(APPEND VSGLAB_SOURCES
 
     # app
     src/examples/app/hello_world_example.cpp
+    src/examples/app/ortho_example.cpp
+    src/examples/app/overlay_example.cpp
 )
 
 if(WIN32)
