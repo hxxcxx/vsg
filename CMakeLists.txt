@@ -147,9 +147,11 @@ list(APPEND VSGLAB_SOURCES
     src/examples/maths/maths_example.cpp
 
     # app
+    src/examples/app/axes_example.cpp
     src/examples/app/hello_world_example.cpp
     src/examples/app/ortho_example.cpp
     src/examples/app/overlay_example.cpp
+    src/examples/app/viewer_example.cpp
 )
 
 if(WIN32)
