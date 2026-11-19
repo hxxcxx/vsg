@@ -164,7 +164,7 @@ void MainWindow::populateTree() {
         item->setData(0, kDescriptorIndexRole, i);
         item->setToolTip(0, qstr(info.brief));
     }
-    tree_->expandAll();
+    // 默认全部折叠，点击分类再展开
 }
 
 void MainWindow::createInstance(int descriptorIndex) {
