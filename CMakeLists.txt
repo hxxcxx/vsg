@@ -154,6 +154,8 @@ list(APPEND VSGLAB_SOURCES
     src/examples/app/offscreen_screenshot_example.cpp
     src/examples/app/ortho_example.cpp
     src/examples/app/overlay_example.cpp
+    src/examples/app/render_to_texture_array_example.cpp
+    src/examples/app/render_to_texture_example.cpp
     src/examples/app/screenshot_example.cpp
     src/examples/app/skybox/skybox_shaders.h
     src/examples/app/skybox_example.cpp
